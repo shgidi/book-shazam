@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Detection App</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        #imageContainer {
+            position: relative;
+            display: inline-block;
+        }
+        .book-box {
+            position: absolute;
+            border: 2px solid green;
+            cursor: pointer;
+        }
+        #contextMenu {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>Book Detection App</h1>
+    <input type="file" id="imageInput" accept="image/*">
+    <div id="imageContainer"></div>
+    <div id="contextMenu">
+        <h3>Book Information</h3>
+        <p id="bookText"></p>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            let bookData = [];
+
+            $('#imageInput').change(function(e) {
+                var file = e.target.files[0];
+                var formData = new FormData();
+                formData.append('file', file);
+
+                $.ajax({
+                    url: '/',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(data) {
+                        $('#imageContainer').html('<img src="' + data.image + '" id="uploadedImage">');
+                        bookData = data.books;
+                        data.books.forEach(function(book, index) {
+                            var [x1, y1, x2, y2] = book.bbox;
+                            $('<div>')
+                                .addClass('book-box')
+                                .css({
+                                    left: x1 + 'px',
+                                    top: y1 + 'px',
+                                    width: (x2 - x1) + 'px',
+                                    height: (y2 - y1) + 'px'
+                                })
+                                .attr('data-index', index)
+                                .appendTo('#imageContainer');
+                        });
+                    }
+                });
+            });
+
+            $(document).on('click', '.book-box', function(e) {
+                e.preventDefault();
+                var index = $(this).data('index');
+                var bookInfo = bookData[index];
+                $('#bookText').text(bookInfo.text || "No text detected");
+                $('#contextMenu')
+                    .css({left: e.pageX, top: e.pageY})
+                    .show();
+            });
+
+            $(document).click(function(e) {
+                if (!$(e.target).closest('.book-box, #contextMenu').length) {
+                    $('#contextMenu').hide();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
