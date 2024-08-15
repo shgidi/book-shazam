@@ -3,89 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Detection App</title>
+    <title>BookBuddy - Your Personal Book Recommender</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <style>
-        #imageContainer {
-            position: relative;
-            display: inline-block;
-        }
-        .book-box {
-            position: absolute;
-            border: 2px solid green;
-            cursor: pointer;
-        }
-        #contextMenu {
-            display: none;
-            position: absolute;
-            background-color: #f9f9f9;
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body>
-    <h1>Book Detection App</h1>
-    <input type="file" id="imageInput" accept="image/*">
-    <div id="imageContainer"></div>
-    <div id="contextMenu">
-        <h3>Book Information</h3>
-        <p id="bookText"></p>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center text-indigo-600 mb-8">BookBuddy</h1>
+        <div class="max-w-2xl mx-auto">
+            <div id="bookForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                <h2 class="text-2xl font-semibold mb-4">Tell us about books you've enjoyed</h2>
+                <div id="bookInputs">
+                    <div class="book-input mb-4">
+                        <input type="text" class="liked-book shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter a book title">
+                    </div>
+                </div>
+                <div class="flex justify-between">
+                    <button id="addBook" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Add Another Book
+                    </button>
+                    <button id="submitBooks" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Submit Books
+                    </button>
+                </div>
+            </div>
+
+            <div id="uploadForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4" style="display: none;">
+                <h2 class="text-2xl font-semibold mb-4">Upload an image of books</h2>
+                <div class="mb-4">
+                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+                    <label for="fileInput" class="cursor-pointer bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline inline-block">
+                        Choose File
+                    </label>
+                    <span id="fileName" class="ml-2 text-gray-600"></span>
+                </div>
+                <button id="uploadButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    Upload and Detect
+                </button>
+            </div>
+
+            <div id="imageContainer" class="mt-8"></div>
+            <div id="contextMenu" class="bg-white shadow-md rounded px-4 py-3" style="display: none; position: absolute;"></div>
+        </div>
     </div>
 
-    <script>
-        $(document).ready(function() {
-            let bookData = [];
-
-            $('#imageInput').change(function(e) {
-                var file = e.target.files[0];
-                var formData = new FormData();
-                formData.append('file', file);
-
-                $.ajax({
-                    url: '/',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(data) {
-                        $('#imageContainer').html('<img src="' + data.image + '" id="uploadedImage">');
-                        bookData = data.books;
-                        data.books.forEach(function(book, index) {
-                            var [x1, y1, x2, y2] = book.bbox;
-                            $('<div>')
-                                .addClass('book-box')
-                                .css({
-                                    left: x1 + 'px',
-                                    top: y1 + 'px',
-                                    width: (x2 - x1) + 'px',
-                                    height: (y2 - y1) + 'px'
-                                })
-                                .attr('data-index', index)
-                                .appendTo('#imageContainer');
-                        });
-                    }
-                });
-            });
-
-            $(document).on('click', '.book-box', function(e) {
-                e.preventDefault();
-                var index = $(this).data('index');
-                var bookInfo = bookData[index];
-                $('#bookText').text(bookInfo.text || "No text detected");
-                $('#contextMenu')
-                    .css({left: e.pageX, top: e.pageY})
-                    .show();
-            });
-
-            $(document).click(function(e) {
-                if (!$(e.target).closest('.book-box, #contextMenu').length) {
-                    $('#contextMenu').hide();
-                }
-            });
-        });
-    </script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

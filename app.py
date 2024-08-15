@@ -6,12 +6,21 @@ import base64
 from google.cloud import vision
 import io
 import os
+from anthropic import Anthropic
+import re
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 # Set up Google Cloud Vision client
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/Users/shgidi/Downloads/compute-5-6-18-2835fab6d675.json'
 vision_client = vision.ImageAnnotatorClient()
+
+# Set up Anthropic client
+<<<<<<< HEAD
+anthropic = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+=======
+anthropic = anthropic = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+>>>>>>> 9489362 (python version update)
 
 # Load YOLOv5 model
 model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
@@ -65,5 +74,56 @@ def index():
     
     return render_template('index.html')
 
+@app.route('/rate_book', methods=['POST'])
+def rate_book():
+    data = request.json
+    book_title = data['book_title']
+    liked_books = data['liked_books']
+
+    prompt = f"""Given the following information:
+
+Book to rate: {book_title}
+
+Books the user liked:
+{', '.join(liked_books)}
+
+Please provide an estimated rating out of 5 stars for the book to rate, based on the user's preferences as indicated by the books they liked. Explain your reasoning briefly.
+
+Your response should be in the format:
+Rating: [X] out of 5 stars
+Reasoning: [Your explanation]
+"""
+
+    response = anthropic.messages.create(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens=300,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    ai_response = response.content[0].text
+
+    # Use regular expressions to extract rating and reasoning
+    rating_match = re.search(r'Rating:\s*(\d+(?:\.\d+)?)\s*out of 5 stars', ai_response)
+    reasoning_match = re.search(r'Reasoning:\s*(.+)', ai_response, re.DOTALL)
+
+    if rating_match and reasoning_match:
+        rating = float(rating_match.group(1))
+        reasoning = reasoning_match.group(1).strip()
+    else:
+        # If we can't parse the response as expected, return the full response
+        rating = None
+        reasoning = "Unable to parse rating. Full response: " + ai_response
+    print(reasoning)
+    return jsonify({
+        'rating': rating,
+        'reasoning': reasoning
+    })
+
+@app.route('/static/<path:path>')
+def send_static(path):
+    return send_from_directory('static', path)
+    
 if __name__ == '__main__':
     app.run(debug=True)
