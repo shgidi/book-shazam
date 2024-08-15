@@ -42,3 +42,28 @@ body {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+/* Custom styles for the recommendation modal */
+#recommendationModal {
+    transition: opacity 0.3s ease;
+}
+
+#recommendationModal .bg-white {
+    transition: transform 0.3s ease;
+}
+
+#recommendationModal.show .bg-white {
+    transform: scale(1);
+}
+
+#ratingStars {
+    letter-spacing: 3px;
+}
+
+#closeModal {
+    transition: background-color 0.3s ease;
+}
+
+#closeModal:hover {
+    background-color: #4338CA;
+}

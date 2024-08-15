@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import cv2
 import numpy as np
 import torch
@@ -74,6 +75,32 @@ def index():
     
     return render_template('index.html')
 
+@app.route('/refine_book_title', methods=['POST'])
+def refine_book_title():
+    data = request.json
+    ocr_text = data['ocr_text']
+
+    prompt = f"""Given the following text extracted from an image of a book cover using OCR:
+
+{ocr_text}
+
+Please identify and return the most likely full title of the book. If you can't determine a specific book title, return your best guess at what the title might be based on the given text. Your response should only include the book title, nothing else.
+"""
+
+    response = anthropic.messages.create(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens=100,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    refined_title = response.content[0].text.strip()
+
+    return jsonify({
+        'refined_title': refined_title
+    })
+
 @app.route('/rate_book', methods=['POST'])
 def rate_book():
     data = request.json
@@ -96,15 +123,14 @@ Reasoning: [Your explanation]
 
     response = anthropic.messages.create(
         model="claude-3-5-sonnet-20240620",
-        max_tokens=300,
+        max_tokens=150,
         messages=[
             {"role": "user", "content": prompt}
         ]
     )
 
+    # Extract the rating and reasoning from the response
     ai_response = response.content[0].text
-
-    # Use regular expressions to extract rating and reasoning
     rating_match = re.search(r'Rating:\s*(\d+(?:\.\d+)?)\s*out of 5 stars', ai_response)
     reasoning_match = re.search(r'Reasoning:\s*(.+)', ai_response, re.DOTALL)
 
@@ -112,10 +138,9 @@ Reasoning: [Your explanation]
         rating = float(rating_match.group(1))
         reasoning = reasoning_match.group(1).strip()
     else:
-        # If we can't parse the response as expected, return the full response
         rating = None
         reasoning = "Unable to parse rating. Full response: " + ai_response
-    print(reasoning)
+
     return jsonify({
         'rating': rating,
         'reasoning': reasoning
@@ -124,6 +149,6 @@ Reasoning: [Your explanation]
 @app.route('/static/<path:path>')
 def send_static(path):
     return send_from_directory('static', path)
-    
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')

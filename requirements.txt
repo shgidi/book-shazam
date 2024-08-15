@@ -9,3 +9,4 @@ google-api-core
 google-auth==2.33.0
 google-cloud-vision
 googleapis-common-protos
+gunicorn==20.1.0

@@ -1,12 +1,13 @@
 $(document).ready(function() {
     let likedBooks = [];
 
-    $('#addBook').click(function() {
+    // Use event delegation for dynamically added elements
+    $(document).on('click', '#addBook', function() {
         const newInput = '<div class="book-input mb-4"><input type="text" class="liked-book shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter a book title"></div>';
         $('#bookInputs').append(newInput);
     });
 
-    $('#submitBooks').click(function() {
+    $(document).on('click', '#submitBooks', function() {
         likedBooks = $('.liked-book').map(function() {
             return $(this).val().trim();
         }).get().filter(book => book !== '');
@@ -24,11 +25,11 @@ $(document).ready(function() {
         $('#uploadForm').show();
     });
 
-    $('#fileInput').change(function() {
+    $(document).on('change', '#fileInput', function() {
         $('#fileName').text(this.files[0].name);
     });
 
-    $('#uploadButton').click(function() {
+    $(document).on('click', '#uploadButton', function() {
         var file = $('#fileInput')[0].files[0];
         if (!file) {
             Swal.fire({
@@ -42,7 +43,7 @@ $(document).ready(function() {
         var formData = new FormData();
         formData.append('file', file);
 
-        $('#uploadButton').prop('disabled', true).html('<span class="loading mr-2"></span>Processing...');
+        $('#uploadButton').prop('disabled', true).html('<span class="loading mr-2"></span>Shazaming...');
 
         $.ajax({
             url: '/',
@@ -53,7 +54,7 @@ $(document).ready(function() {
             success: function(data) {
                 $('#imageContainer').html('<img src="' + data.image + '" style="max-width: 100%;">');
                 setupBookDetection(data.books);
-                $('#uploadButton').prop('disabled', false).html('Upload and Detect');
+                $('#uploadButton').prop('disabled', false).html('Shazam Books!');
             },
             error: function() {
                 Swal.fire({
@@ -61,7 +62,7 @@ $(document).ready(function() {
                     title: 'Oops...',
                     text: 'An error occurred while processing the image.',
                 });
-                $('#uploadButton').prop('disabled', false).html('Upload and Detect');
+                $('#uploadButton').prop('disabled', false).html('Shazam Books!');
             }
         });
     });
@@ -96,7 +97,7 @@ $(document).ready(function() {
 
                 highlight.on('click', function(e) {
                     e.stopPropagation();
-                    showBookInfo(book, e.pageX, e.pageY);
+                    refineAndShowBookInfo(book, e.pageX, e.pageY);
                 });
             });
         });
@@ -106,9 +107,30 @@ $(document).ready(function() {
         });
     }
 
-    function showBookInfo(book, x, y) {
+    function refineAndShowBookInfo(book, x, y) {
+        $('#contextMenu').html('<p class="text-sm">Refining book title...</p>').css({
+            display: 'block',
+            left: x + 'px',
+            top: y + 'px'
+        });
+
+        $.ajax({
+            url: '/refine_book_title',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ ocr_text: book.text }),
+            success: function(data) {
+                showBookInfo(data.refined_title, x, y);
+            },
+            error: function() {
+                showBookInfo(book.text, x, y);
+            }
+        });
+    }
+
+    function showBookInfo(bookTitle, x, y) {
         $('#contextMenu').html(`
-            <h3 class="font-semibold mb-2">${book.text}</h3>
+            <h3 class="font-semibold mb-2">${bookTitle}</h3>
             <button id="rateButton" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-1 px-2 rounded text-sm">
                 Get Rating
             </button>
@@ -118,8 +140,9 @@ $(document).ready(function() {
             top: y + 'px'
         });
 
-        $('#rateButton').click(function() {
-            getRating(book.text);
+        // Use event delegation for the rate button
+        $(document).off('click', '#rateButton').on('click', '#rateButton', function() {
+            getRating(bookTitle);
         });
     }
 
@@ -135,11 +158,7 @@ $(document).ready(function() {
                 liked_books: likedBooks
             }),
             success: function(data) {
-                Swal.fire({
-                    icon: 'info',
-                    title: `Rating for "${bookTitle}"`,
-                    html: `<p class="text-xl font-bold mb-2">${data.rating} out of 5 stars</p><p>${data.reasoning}</p>`,
-                });
+                showRecommendationModal(bookTitle, data.rating, data.reasoning);
                 $('#rateButton').prop('disabled', false).html('Get Rating');
             },
             error: function() {
@@ -152,6 +171,24 @@ $(document).ready(function() {
             }
         });
     }
+
+    function showRecommendationModal(bookTitle, rating, reasoning) {
+        $('#modal-title').text(`Book Shazam Rating for "${bookTitle}"`);
+        $('#modal-rating').html(`<span class="text-2xl font-bold">${rating} out of 5 stars</span>`);
+        $('#modal-reasoning').text(reasoning);
+        $('#recommendationModal').removeClass('hidden');
+    }
+
+    $('#closeModal').click(function() {
+        $('#recommendationModal').addClass('hidden');
+    });
+
+    // Close modal when clicking outside
+    $(window).click(function(event) {
+        if ($(event.target).is('#recommendationModal')) {
+            $('#recommendationModal').addClass('hidden');
+        }
+    });
 
     // Recalculate highlight positions on window resize
     $(window).resize(function() {
