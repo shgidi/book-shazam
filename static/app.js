@@ -1,35 +1,13 @@
 $(document).ready(function() {
     let likedBooks = [];
 
-    // Use event delegation for dynamically added elements
-    $(document).on('click', '#addBook', function() {
-        const newInput = '<div class="book-input mb-4"><input type="text" class="liked-book shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter a book title"></div>';
-        $('#bookInputs').append(newInput);
-    });
-
-    $(document).on('click', '#submitBooks', function() {
-        likedBooks = $('.liked-book').map(function() {
-            return $(this).val().trim();
-        }).get().filter(book => book !== '');
-
-        if (likedBooks.length < 3) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Please enter at least 3 books you\'ve enjoyed.',
-            });
-            return;
-        }
-
-        $('#bookForm').hide();
-        $('#uploadForm').show();
-    });
-
-    $(document).on('change', '#fileInput', function() {
+    // File input change event
+    $('#fileInput').change(function() {
         $('#fileName').text(this.files[0].name);
     });
 
-    $(document).on('click', '#uploadButton', function() {
+    // Upload button click event
+    $('#uploadButton').click(function() {
         var file = $('#fileInput')[0].files[0];
         if (!file) {
             Swal.fire({
@@ -46,7 +24,7 @@ $(document).ready(function() {
         $('#uploadButton').prop('disabled', true).html('<span class="loading mr-2"></span>Shazaming...');
 
         $.ajax({
-            url: '/',
+            url: '/upload',
             type: 'POST',
             data: formData,
             contentType: false,
@@ -67,6 +45,38 @@ $(document).ready(function() {
         });
     });
 
+    // Add new book to liked books
+    $('#addNewBook').click(function() {
+        var newBook = $('#newBookInput').val().trim();
+        if (newBook) {
+            $.ajax({
+                url: '/add_liked_book',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ book_title: newBook }),
+                success: function(response) {
+                    if (response.success) {
+                        $('#likedBooksList').append('<li>' + newBook + '</li>');
+                        $('#newBookInput').val('');
+                    } else {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Note',
+                            text: response.message,
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'An error occurred while adding the book.',
+                    });
+                }
+            });
+        }
+    });
+
     function setupBookDetection(books) {
         const img = $('#imageContainer img');
         const container = $('#imageContainer');
@@ -84,16 +94,18 @@ $(document).ready(function() {
             const scaleX = imgDisplayWidth / imgNaturalWidth;
             const scaleY = imgDisplayHeight / imgNaturalHeight;
 
-            const imgOffset = img.offset();
+            container.css('position', 'relative');
 
             books.forEach((book, index) => {
                 const [x1, y1, x2, y2] = book.bbox;
                 const highlight = $('<div class="book-highlight"></div>').css({
-                    left: (x1 * scaleX) + imgOffset.left,
-                    top: (y1 * scaleY) + imgOffset.top,
+                    left: x1 * scaleX,
+                    top: y1 * scaleY,
                     width: (x2 - x1) * scaleX,
-                    height: (y2 - y1) * scaleY
-                }).appendTo('body');
+                    height: (y2 - y1) * scaleY,
+                    position: 'absolute',
+                    cursor: 'pointer'
+                }).appendTo(container);
 
                 highlight.on('click', function(e) {
                     e.stopPropagation();
@@ -155,7 +167,7 @@ $(document).ready(function() {
             contentType: 'application/json',
             data: JSON.stringify({
                 book_title: bookTitle,
-                liked_books: likedBooks
+                liked_books: getLikedBooks()
             }),
             success: function(data) {
                 showRecommendationModal(bookTitle, data.rating, data.reasoning);
@@ -172,21 +184,41 @@ $(document).ready(function() {
         });
     }
 
+    function getLikedBooks() {
+        return $('#likedBooksList li').map(function() {
+            return $(this).text();
+        }).get();
+    }
+
     function showRecommendationModal(bookTitle, rating, reasoning) {
-        $('#modal-title').text(`Book Shazam Rating for "${bookTitle}"`);
-        $('#modal-rating').html(`<span class="text-2xl font-bold">${rating} out of 5 stars</span>`);
-        $('#modal-reasoning').text(reasoning);
-        $('#recommendationModal').removeClass('hidden');
+        $('#bookTitle').text(bookTitle);
+        $('#ratingText').text(`${rating} out of 5 stars`);
+        $('#reasoningText').text(reasoning);
+        
+        // Generate star rating
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= Math.floor(rating)) {
+                starsHtml += '★';
+            } else if (i - 0.5 <= rating) {
+                starsHtml += '½';
+            } else {
+                starsHtml += '☆';
+            }
+        }
+        $('#ratingStars').html(starsHtml);
+
+        $('#recommendationModal').fadeIn(300);
     }
 
     $('#closeModal').click(function() {
-        $('#recommendationModal').addClass('hidden');
+        $('#recommendationModal').fadeOut(300);
     });
 
     // Close modal when clicking outside
     $(window).click(function(event) {
-        if ($(event.target).is('#recommendationModal')) {
-            $('#recommendationModal').addClass('hidden');
+        if (event.target == document.getElementById('recommendationModal')) {
+            $('#recommendationModal').fadeOut(300);
         }
     });
 

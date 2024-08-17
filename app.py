@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, flash
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 import cv2
 import numpy as np
 import torch
@@ -9,8 +10,20 @@ import io
 import os
 from anthropic import Anthropic
 import re
+from database_models import db, User, LikedBook
 
 app = Flask(__name__, static_folder='static')
+app.config['SECRET_KEY'] = 'your-secret-key'  # Change this to a random secret key
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bookshazam.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # Set up Google Cloud Vision client
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/Users/shgidi/Downloads/compute-5-6-18-2835fab6d675.json'
@@ -48,8 +61,13 @@ def perform_ocr(image, box):
         return texts[0].description.strip()
     return "No text detected"
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
+    if current_user.is_authenticated:
+        liked_books = [book.title for book in current_user.liked_books]
+    else:
+        liked_books = []
+    return render_template('index.html', liked_books=liked_books)
     if request.method == 'POST':
         file = request.files['file']
         img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_UNCHANGED)
@@ -74,6 +92,86 @@ def index():
         })
     
     return render_template('index.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        
+        user = User.query.filter_by(username=username).first()
+        if user:
+            flash('Username already exists')
+            return redirect(url_for('register'))
+        
+        new_user = User(username=username, email=email)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Registration successful. Please log in.')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid username or password')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
+@app.route('/add_liked_book', methods=['POST'])
+@login_required
+def add_liked_book():
+    data = request.json
+    book_title = data['book_title']
+    
+    existing_book = LikedBook.query.filter_by(user_id=current_user.id, title=book_title).first()
+    if not existing_book:
+        new_book = LikedBook(title=book_title, user_id=current_user.id)
+        db.session.add(new_book)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Book added to liked books'})
+    else:
+        return jsonify({'success': False, 'message': 'Book already in liked books'})
+
+@app.route('/remove_liked_book', methods=['POST'])
+@login_required
+def remove_liked_book():
+    data = request.json
+    book_title = data['book_title']
+    
+    book = LikedBook.query.filter_by(user_id=current_user.id, title=book_title).first()
+    if book:
+        db.session.delete(book)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Book removed from liked books'})
+    else:
+        return jsonify({'success': False, 'message': 'Book not found in liked books'})
+    data = request.json
+    book_title = data['book_title']
+    
+    book = LikedBook.query.filter_by(user_id=current_user.id, title=book_title).first()
+    if book:
+        db.session.delete(book)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Book removed from liked books'})
+    else:
+        return jsonify({'success': False, 'message': 'Book not found in liked books'})
 
 @app.route('/refine_book_title', methods=['POST'])
 def refine_book_title():
@@ -150,5 +248,35 @@ Reasoning: [Your explanation]
 def send_static(path):
     return send_from_directory('static', path)
 
+@app.route('/upload', methods=['POST'])
+@login_required
+def upload():
+    file = request.files['file']
+    img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_UNCHANGED)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    
+    detections = detect_books(img_rgb)
+    
+    result_img = img.copy()
+    book_info = []
+    for det in detections:
+        x1, y1, x2, y2, conf, cls = det
+        cv2.rectangle(result_img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+        text = perform_ocr(img, det)
+        book_info.append({"bbox": det[:4].tolist(), "text": text})
+    
+    _, buffer = cv2.imencode('.jpg', result_img)
+    img_str = base64.b64encode(buffer).decode()
+    
+    return jsonify({
+        'image': f'data:image/jpeg;base64,{img_str}',
+        'books': book_info
+    })
+
+def init_db():
+    with app.app_context():
+        db.create_all()
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    init_db()  # Initialize the database before running the app
+    app.run(debug=True)

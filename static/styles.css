@@ -6,6 +6,11 @@ body {
     max-width: 1200px;
 }
 
+#imageContainer {
+    position: relative;
+    z-index: 1;
+}
+
 #imageContainer img {
     max-width: 100%;
     height: auto;
@@ -23,6 +28,7 @@ body {
     border: 2px solid #4F46E5;
     background-color: rgba(79, 70, 229, 0.2);
     transition: all 0.3s ease;
+    cursor: pointer;
 }
 
 .book-highlight:hover {
@@ -43,9 +49,9 @@ body {
     to { transform: rotate(360deg); }
 }
 
-/* Custom styles for the recommendation modal */
 #recommendationModal {
     transition: opacity 0.3s ease;
+    z-index: 2000;
 }
 
 #recommendationModal .bg-white {
