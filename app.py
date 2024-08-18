@@ -30,11 +30,7 @@ os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/Users/shgidi/Downloads/compute-
 vision_client = vision.ImageAnnotatorClient()
 
 # Set up Anthropic client
-<<<<<<< HEAD
 anthropic = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-=======
-anthropic = anthropic = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
->>>>>>> 9489362 (python version update)
 
 # Load YOLOv5 model
 model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
