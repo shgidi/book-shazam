@@ -6,12 +6,16 @@ import base64
 from google.cloud import vision
 import io
 import os
+import anthropic
 
 app = Flask(__name__)
 
 # Set up Google Cloud Vision client
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/Users/shgidi/Downloads/compute-5-6-18-2835fab6d675.json'
 vision_client = vision.ImageAnnotatorClient()
+
+# Set up Anthropic client
+anthropic_client = anthropic.Client(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 # Load YOLOv5 model
 model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
@@ -65,5 +69,42 @@ def index():
     
     return render_template('index.html')
 
+@app.route('/rate_book', methods=['POST'])
+def rate_book():
+    data = request.json
+    book_title = data['book_title']
+    liked_books = data['liked_books']
+
+    prompt = f"""Given the following information:
+
+Book to rate: {book_title}
+
+Books the user liked:
+{', '.join(liked_books)}
+
+Please provide an estimated rating out of 5 stars for the book to rate, based on the user's preferences as indicated by the books they liked. Explain your reasoning briefly.
+
+Your response should be in the format:
+Rating: [X] out of 5 stars
+Reasoning: [Your explanation]
+"""
+
+    response = anthropic_client.completions.create(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens_to_sample=300,
+        prompt=f"{anthropic.HUMAN_PROMPT} {prompt}{anthropic.AI_PROMPT}",
+    )
+
+    # Extract the rating and reasoning from the response
+    ai_response = response.completion
+    rating_line = ai_response.split('\n')[0]
+    rating = float(rating_line.split(':')[1].split('out')[0].strip())
+    reasoning = ai_response.split('\n')[1].split(':')[1].strip()
+
+    return jsonify({
+        'rating': rating,
+        'reasoning': reasoning
+    })
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True,port=5001)

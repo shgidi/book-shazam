@@ -3,44 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Detection App</title>
+    <title>Book Detection and Recommendation App</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
-        #imageContainer {
-            position: relative;
-            display: inline-block;
-        }
-        .book-box {
-            position: absolute;
-            border: 2px solid green;
-            cursor: pointer;
-        }
-        #contextMenu {
-            display: none;
-            position: absolute;
-            background-color: #f9f9f9;
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        #bookForm, #uploadForm { margin-bottom: 20px; }
+        #imageContainer { max-width: 100%; position: relative; }
+        #contextMenu { display: none; position: absolute; background-color: white; border: 1px solid #ccc; padding: 10px; }
+        .book-input { margin-bottom: 10px; }
     </style>
 </head>
 <body>
-    <h1>Book Detection App</h1>
-    <input type="file" id="imageInput" accept="image/*">
-    <div id="imageContainer"></div>
-    <div id="contextMenu">
-        <h3>Book Information</h3>
-        <p id="bookText"></p>
+    <h1>Book Detection and Recommendation App</h1>
+    
+    <div id="bookForm">
+        <h2>Enter books you've liked recently</h2>
+        <div class="book-input">
+            <input type="text" class="liked-book" placeholder="Book title">
+        </div>
+        <div class="book-input">
+            <input type="text" class="liked-book" placeholder="Book title">
+        </div>
+        <div class="book-input">
+            <input type="text" class="liked-book" placeholder="Book title">
+        </div>
+        <button id="addBook">Add Another Book</button>
+        <button id="submitBooks">Submit Books</button>
     </div>
+
+    <div id="uploadForm" style="display: none;">
+        <h2>Upload an image of books</h2>
+        <input type="file" id="fileInput" accept="image/*">
+        <button id="uploadButton">Upload and Detect</button>
+    </div>
+
+    <div id="imageContainer"></div>
+    <div id="contextMenu"></div>
 
     <script>
         $(document).ready(function() {
-            let bookData = [];
+            let likedBooks = [];
 
-            $('#imageInput').change(function(e) {
-                var file = e.target.files[0];
+            $('#addBook').click(function() {
+                $('.book-input:last').clone().appendTo('#bookForm');
+                $('.book-input:last input').val('');
+            });
+
+            $('#submitBooks').click(function() {
+                likedBooks = $('.liked-book').map(function() {
+                    return $(this).val();
+                }).get().filter(book => book.trim() !== '');
+
+                if (likedBooks.length < 3) {
+                    alert('Please enter at least 3 books.');
+                    return;
+                }
+
+                $('#bookForm').hide();
+                $('#uploadForm').show();
+            });
+
+            $('#uploadButton').click(function() {
+                var file = $('#fileInput')[0].files[0];
+                if (!file) {
+                    alert('Please select a file first.');
+                    return;
+                }
+
                 var formData = new FormData();
                 formData.append('file', file);
 
@@ -48,43 +77,66 @@
                     url: '/',
                     type: 'POST',
                     data: formData,
-                    processData: false,
                     contentType: false,
+                    processData: false,
                     success: function(data) {
-                        $('#imageContainer').html('<img src="' + data.image + '" id="uploadedImage">');
-                        bookData = data.books;
-                        data.books.forEach(function(book, index) {
-                            var [x1, y1, x2, y2] = book.bbox;
-                            $('<div>')
-                                .addClass('book-box')
-                                .css({
-                                    left: x1 + 'px',
-                                    top: y1 + 'px',
-                                    width: (x2 - x1) + 'px',
-                                    height: (y2 - y1) + 'px'
-                                })
-                                .attr('data-index', index)
-                                .appendTo('#imageContainer');
-                        });
+                        $('#imageContainer').html('<img src="' + data.image + '" style="max-width: 100%;">');
+                        setupBookDetection(data.books);
                     }
                 });
             });
 
-            $(document).on('click', '.book-box', function(e) {
-                e.preventDefault();
-                var index = $(this).data('index');
-                var bookInfo = bookData[index];
-                $('#bookText').text(bookInfo.text || "No text detected");
-                $('#contextMenu')
-                    .css({left: e.pageX, top: e.pageY})
-                    .show();
-            });
+            function setupBookDetection(books) {
+                $('#imageContainer img').click(function(e) {
+                    var offset = $(this).offset();
+                    var x = e.pageX - offset.left;
+                    var y = e.pageY - offset.top;
 
-            $(document).click(function(e) {
-                if (!$(e.target).closest('.book-box, #contextMenu').length) {
-                    $('#contextMenu').hide();
-                }
-            });
+                    var clickedBook = books.find(function(book) {
+                        var [x1, y1, x2, y2] = book.bbox;
+                        return x >= x1 && x <= x2 && y >= y1 && y <= y2;
+                    });
+
+                    if (clickedBook) {
+                        $('#contextMenu').html('<h3>Book Information</h3><p>' + clickedBook.text + '</p><button id="rateButton">Rate</button>');
+                        $('#contextMenu').css({
+                            display: 'block',
+                            left: e.pageX + 'px',
+                            top: e.pageY + 'px'
+                        });
+
+                        $('#rateButton').click(function() {
+                            getRating(clickedBook.text);
+                        });
+                    } else {
+                        $('#contextMenu').hide();
+                    }
+                });
+
+                $(document).click(function(e) {
+                    if (!$(e.target).closest('#imageContainer, #contextMenu').length) {
+                        $('#contextMenu').hide();
+                    }
+                });
+            }
+
+            function getRating(bookTitle) {
+                $.ajax({
+                    url: '/rate_book',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        book_title: bookTitle,
+                        liked_books: likedBooks
+                    }),
+                    success: function(data) {
+                        alert('Estimated rating for "' + bookTitle + '": ' + data.rating);
+                    },
+                    error: function() {
+                        alert('Error getting book rating.');
+                    }
+                });
+            }
         });
     </script>
 </body>
