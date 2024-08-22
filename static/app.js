@@ -211,6 +211,45 @@ $(document).ready(function() {
         $('#recommendationModal').fadeIn(300);
     }
 
+    $('#queryBookButton').click(function() {
+        var bookTitle = $('#queryBookInput').val().trim();
+        if (bookTitle) {
+            getRating(bookTitle);
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Please enter a book title.',
+            });
+        }
+    });
+
+    function getRating(bookTitle) {
+        $('#queryBookButton, #rateButton').prop('disabled', true).html('<span class="loading mr-2"></span>Rating...');
+
+        $.ajax({
+            url: '/rate_book',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                book_title: bookTitle,
+                liked_books: getLikedBooks()
+            }),
+            success: function(data) {
+                showRecommendationModal(bookTitle, data.rating, data.reasoning);
+                $('#queryBookButton, #rateButton').prop('disabled', false).html('Get Book Rating');
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Error getting book rating.',
+                });
+                $('#queryBookButton, #rateButton').prop('disabled', false).html('Get Book Rating');
+            }
+        });
+    }
+    
     $('#closeModal').click(function() {
         $('#recommendationModal').fadeOut(300);
     });

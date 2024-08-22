@@ -54,6 +54,16 @@
                         Shazam Books!
                     </button>
                 </div>
+                <div id="queryBookSection" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                    <h2 class="text-2xl font-semibold mb-4">Query a Book</h2>
+                    <p class="text-sm text-gray-600 mb-4">Get ratings and recommendations for any book.</p>
+                    <div class="mb-4">
+                        <input type="text" id="queryBookInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter a book title">
+                    </div>
+                    <button id="queryBookButton" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Get Book Rating
+                    </button>
+                </div>
             {% else %}
                 <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
                     <p class="text-center text-xl mb-4">Please log in or register to use Book Shazam</p>
@@ -62,6 +72,7 @@
                         <a href="{{ url_for('register') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Register</a>
                     </div>
                 </div>
+
             {% endif %}
 
             <div id="imageContainer" class="mt-8"></div>

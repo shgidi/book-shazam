@@ -11,9 +11,11 @@ import os
 from anthropic import Anthropic
 import re
 from database_models import db, User, LikedBook
+from PIL import Image
+import exifread
 
 app = Flask(__name__, static_folder='static')
-app.config['SECRET_KEY'] = 'your-secret-key'  # Change this to a random secret key
+app.config['SECRET_KEY'] = 'random-key'  # Change this to a random secret key
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bookshazam.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -26,7 +28,6 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # Set up Google Cloud Vision client
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/Users/shgidi/Downloads/compute-5-6-18-2835fab6d675.json'
 vision_client = vision.ImageAnnotatorClient()
 
 # Set up Anthropic client
@@ -57,6 +58,28 @@ def perform_ocr(image, box):
         return texts[0].description.strip()
     return "No text detected"
 
+def fix_image_rotation(image_file):
+    image = Image.open(image_file)
+    
+    # Check if the image has EXIF data
+    exif = image._getexif()
+    if exif is not None:
+        # EXIF orientation tag
+        orientation_key = 274
+        if orientation_key in exif:
+            orientation = exif[orientation_key]
+            
+            # Rotate the image based on EXIF orientation
+            if orientation == 3:
+                image = image.rotate(180, expand=True)
+            elif orientation == 6:
+                image = image.rotate(270, expand=True)
+            elif orientation == 8:
+                image = image.rotate(90, expand=True)
+    
+    # Convert PIL Image to numpy array for OpenCV
+    return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    
 @app.route('/')
 def index():
     if current_user.is_authenticated:
@@ -119,6 +142,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             login_user(user)
+            print(username,'logged in')
             return redirect(url_for('index'))
         else:
             flash('Invalid username or password')
@@ -196,6 +220,7 @@ Please identify and return the most likely full title of the book. If you can't 
     })
 
 @app.route('/rate_book', methods=['POST'])
+@login_required
 def rate_book():
     data = request.json
     book_title = data['book_title']
@@ -208,7 +233,7 @@ Book to rate: {book_title}
 Books the user liked:
 {', '.join(liked_books)}
 
-Please provide an estimated rating out of 5 stars for the book to rate, based on the user's preferences as indicated by the books they liked. Explain your reasoning briefly.
+Please provide an estimated rating out of 5 stars for the book to rate, based on the user's preferences as indicated by the books they liked. If you're not familiar with the book, make an educated guess based on the title and the user's preferences. Explain your reasoning briefly.
 
 Your response should be in the format:
 Rating: [X] out of 5 stars
@@ -217,7 +242,7 @@ Reasoning: [Your explanation]
 
     response = anthropic.messages.create(
         model="claude-3-5-sonnet-20240620",
-        max_tokens=150,
+        max_tokens=100,
         messages=[
             {"role": "user", "content": prompt}
         ]
@@ -247,10 +272,21 @@ def send_static(path):
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload():
+    # Check if user has at least 3 liked books
+    if current_user.liked_books.count() < 3:
+        return jsonify({
+            'error': 'Please add at least 3 books to your liked books before uploading an image.'
+        }), 400
+
     file = request.files['file']
-    img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_UNCHANGED)
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     
+    # Fix image rotation
+    img = fix_image_rotation(file)
+    
+    im_id = np.random.rand()
+    cv2.imwrite(f'./images/img_{im_id}.jpg',img)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    print('image uploaded')
     detections = detect_books(img_rgb)
     
     result_img = img.copy()
@@ -275,4 +311,5 @@ def init_db():
 
 if __name__ == '__main__':
     init_db()  # Initialize the database before running the app
-    app.run(debug=True)
+    app.run(host='0.0.0.0',debug=True)
+    #app.run(ssl_context=('full_chain.crt', 'private.key'),host='0.0.0.0', port=443,debug=True)
