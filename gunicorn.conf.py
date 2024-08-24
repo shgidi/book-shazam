@@ -8,7 +8,7 @@ bind = "0.0.0.0:443"
 workers = 4  # or even 2, depending on your application's needs
 
 # The type of workers to use
-worker_class = 'sync'
+worker_class = 'gevent'
 
 # The maximum number of simultaneous clients
 worker_connections = 1000
@@ -20,8 +20,8 @@ max_requests_jitter = 100
 # Add graceful timeout
 graceful_timeout = 120
 
-# If a worker does not notify the master process in this number of seconds it is killed and a new worker is spawned to replace it
-timeout = 30
+# Increase timeout to allow more time for YOLO processing
+timeout = 120  # or higher if needed
 
 # Restart workers when code changes (development only)
 reload = True
@@ -34,6 +34,15 @@ certfile = "full_chain.crt"
 keyfile = "private.key"
 
 logfile = "gunicorn.log"
+
+# Improve logging
+loglevel = 'info'
+accesslog = 'access.log'
+errorlog = 'error.log'
+
+# Preload application code
+preload_app = True
+
 # The on_starting function is called just before the master process is initialized
 def on_starting(server):
     print("Starting Gunicorn server...")
