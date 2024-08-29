@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Book Shazam - Instant Book Recognition and Rating</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -13,85 +13,94 @@
 <body class="bg-gray-100 font-sans">
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8">
-            <h1 class="text-4xl font-bold text-indigo-600">Book Shazam</h1>
+            <h1 class="text-4xl font-bold text-indigo-600 font-poppins">Book Shazam</h1>
             <div>
                 {% if current_user.is_authenticated %}
-                    <span class="mr-4">Welcome, {{ current_user.username }}!</span>
-                    <a href="{{ url_for('logout') }}" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Logout</a>
+                    <span class="mr-4 font-poppins">Welcome, {{ current_user.username }}!</span>
+                    <a href="{{ url_for('logout') }}" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110">Logout</a>
                 {% else %}
-                    <a href="{{ url_for('login') }}" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded mr-2">Login</a>
-                    <a href="{{ url_for('register') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Register</a>
+                    <a href="{{ url_for('login') }}" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded mr-2 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110">Login</a>
+                    <a href="{{ url_for('register') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110">Register</a>
                 {% endif %}
             </div>
         </div>
-        <div class="max-w-2xl mx-auto">
-            {% if current_user.is_authenticated %}
-                <div id="likedBooks" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-                    <h2 class="text-2xl font-semibold mb-4">Your Liked Books</h2>
-                    <ul id="likedBooksList" class="list-disc pl-5 mb-4">
-                        {% for book in liked_books %}
-                            <li>{{ book }}</li>
-                        {% endfor %}
-                    </ul>
-                    <div class="mb-4">
-                        <input type="text" id="newBookInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Add a new book">
-                    </div>
-                    <button id="addNewBook" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Add New Book
-                    </button>
-                </div>
-                
-                <div id="uploadForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-                    <h2 class="text-2xl font-semibold mb-4">Upload an image of books</h2>
-                    <div class="mb-4">
-                        <input type="file" id="fileInput" accept="image/*" class="hidden">
-                        <label for="fileInput" class="cursor-pointer bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline inline-block">
-                            Choose File
-                        </label>
-                        <span id="fileName" class="ml-2 text-gray-600"></span>
-                    </div>
-                    <button id="uploadButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Shazam Books!
-                    </button>
-                </div>
-                <div id="queryBookSection" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-                    <h2 class="text-2xl font-semibold mb-4">Query a Book</h2>
-                    <p class="text-sm text-gray-600 mb-4">Get ratings and recommendations for any book.</p>
-                    <div class="mb-4">
-                        <input type="text" id="queryBookInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter a book title">
-                    </div>
-                    <button id="queryBookButton" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Get Book Rating
-                    </button>
-                </div>
-            {% else %}
-                <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-                    <p class="text-center text-xl mb-4">Please log in or register to use Book Shazam</p>
-                    <div class="flex justify-center">
-                        <a href="{{ url_for('login') }}" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded mr-2">Login</a>
-                        <a href="{{ url_for('register') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Register</a>
-                    </div>
-                </div>
 
-            {% endif %}
+        {% if current_user.is_authenticated %}
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
+                <h2 class="text-2xl font-semibold mb-4 font-poppins text-indigo-700">How to Use Book Shazam</h2>
+                <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                    <li>Add at least 3 books you like to your "Liked Books" list.</li>
+                    <li>Upload a photo of book covers or manually enter a book title.</li>
+                    <li>Get personalized ratings and recommendations based on your preferences!</li>
+                </ol>
+            </div>
 
-            <div id="imageContainer" class="mt-8"></div>
-            <div id="contextMenu" class="bg-white shadow-md rounded px-4 py-3" style="display: none; position: absolute;"></div>
-        </div>
+            <div id="likedBooks" class="bg-white shadow-lg rounded-lg p-6 mb-8">
+                <h2 class="text-2xl font-semibold mb-4 font-poppins text-indigo-700">Your Liked Books</h2>
+                <ul id="likedBooksList" class="list-disc pl-5 mb-4 text-gray-700">
+                    {% for book in liked_books %}
+                        <li>{{ book }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="mb-4">
+                    <input type="text" id="newBookInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter a book title you like">
+                </div>
+                <button id="addNewBook" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110">
+                    Add New Book
+                </button>
+            </div>
+            
+            <div id="uploadForm" class="bg-white shadow-lg rounded-lg p-6 mb-8">
+                <h2 class="text-2xl font-semibold mb-4 font-poppins text-indigo-700">Upload Book Image</h2>
+                <p class="text-sm text-gray-600 mb-4">Upload an image containing book covers to get recommendations.</p>
+                <div class="mb-4">
+                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+                    <label for="fileInput" class="cursor-pointer bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline inline-block transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110">
+                        Choose File
+                    </label>
+                    <span id="fileName" class="ml-2 text-gray-600"></span>
+                </div>
+                <button id="uploadButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110">
+                    Shazam Books!
+                </button>
+            </div>
+
+            <div id="queryBookSection" class="bg-white shadow-lg rounded-lg p-6 mb-8">
+                <h2 class="text-2xl font-semibold mb-4 font-poppins text-indigo-700">Query a Book</h2>
+                <p class="text-sm text-gray-600 mb-4">Get ratings and recommendations for any book, even if you don't have an image.</p>
+                <div class="mb-4">
+                    <input type="text" id="queryBookInput" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter a book title">
+                </div>
+                <button id="queryBookButton" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110">
+                    Get Book Rating
+                </button>
+            </div>
+        {% else %}
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
+                <p class="text-center text-xl mb-4 font-poppins text-gray-700">Please log in or register to use Book Shazam</p>
+                <div class="flex justify-center">
+                    <a href="{{ url_for('login') }}" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded mr-2 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110">Login</a>
+                    <a href="{{ url_for('register') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110">Register</a>
+                </div>
+            </div>
+        {% endif %}
+
+        <div id="imageContainer" class="mt-8"></div>
+        <div id="contextMenu" class="bg-white shadow-md rounded px-4 py-3" style="display: none; position: absolute;"></div>
     </div>
 
     <!-- Custom Modal for Book Recommendation -->
     <div id="recommendationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" style="display: none;">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="mt-3 text-center">
-                <h3 id="bookTitle" class="text-lg leading-6 font-medium text-gray-900"></h3>
+                <h3 id="bookTitle" class="text-lg leading-6 font-medium text-gray-900 font-poppins"></h3>
                 <div class="mt-2 px-7 py-3">
                     <div id="ratingStars" class="text-3xl text-yellow-400"></div>
-                    <p id="ratingText" class="text-sm text-gray-500 mt-1"></p>
-                    <p id="reasoningText" class="text-sm text-gray-700 mt-4"></p>
+                    <p id="ratingText" class="text-sm text-gray-500 mt-1 font-poppins"></p>
+                    <p id="reasoningText" class="text-sm text-gray-700 mt-4 font-poppins"></p>
                 </div>
                 <div class="items-center px-4 py-3">
-                    <button id="closeModal" class="px-4 py-2 bg-indigo-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    <button id="closeModal" class="px-4 py-2 bg-indigo-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-110">
                         Close
                     </button>
                 </div>

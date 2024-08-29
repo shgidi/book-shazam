@@ -1,14 +1,10 @@
 body {
     font-family: 'Poppins', sans-serif;
+    background-color: #f3f4f6;
 }
 
 .container {
     max-width: 1200px;
-}
-
-#imageContainer {
-    position: relative;
-    z-index: 1;
 }
 
 #imageContainer img {
@@ -49,9 +45,9 @@ body {
     to { transform: rotate(360deg); }
 }
 
+/* Custom styles for the recommendation modal */
 #recommendationModal {
     transition: opacity 0.3s ease;
-    z-index: 2000;
 }
 
 #recommendationModal .bg-white {
@@ -72,4 +68,75 @@ body {
 
 #closeModal:hover {
     background-color: #4338CA;
+}
+
+/* Custom styles for sections */
+.shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.rounded-lg {
+    border-radius: 1rem;
+}
+
+/* Custom font styles */
+.font-poppins {
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Custom button styles */
+button, .button {
+    transition: all 0.3s ease;
+}
+
+button:hover, .button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom input styles */
+input[type="text"] {
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus {
+    border-color: #4F46E5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+/* Instructions list styling */
+ol.list-decimal {
+    padding-left: 1.5rem;
+}
+
+ol.list-decimal li {
+    margin-bottom: 0.5rem;
+}
+
+.btn-remove {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    margin-left: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: background-color 0.3s ease;
+}
+
+.btn-remove:hover {
+    background-color: #ff1a1a;
+}
+
+.btn-remove:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 77, 77, 0.5);
+}
+
+#likedBooksList li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
 }

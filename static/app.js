@@ -45,6 +45,18 @@ $(document).ready(function() {
         });
     });
 
+    // Function to add remove button to existing books
+    function addRemoveButtonToExistingBooks() {
+        $('#likedBooksList li').each(function() {
+            if (!$(this).find('.remove-book').length) {
+                $(this).append(' <button class="remove-book btn-remove">Remove</button>');
+            }
+        });
+    }
+
+    // Call this function when the page loads
+    addRemoveButtonToExistingBooks();
+
     // Add new book to liked books
     $('#addNewBook').click(function() {
         var newBook = $('#newBookInput').val().trim();
@@ -56,7 +68,7 @@ $(document).ready(function() {
                 data: JSON.stringify({ book_title: newBook }),
                 success: function(response) {
                     if (response.success) {
-                        $('#likedBooksList').append('<li>' + newBook + '</li>');
+                        $('#likedBooksList').append(`<li>${newBook} <button class="remove-book btn-remove">Remove</button></li>`);
                         $('#newBookInput').val('');
                     } else {
                         Swal.fire({
@@ -75,6 +87,39 @@ $(document).ready(function() {
                 }
             });
         }
+    });
+
+    // Remove book from liked books
+    $('#likedBooksList').on('click', '.remove-book', function() {
+        var bookItem = $(this).parent();
+        var bookTitle = bookItem.contents().filter(function() {
+            return this.nodeType === 3;
+        }).text().trim();
+
+        $.ajax({
+            url: '/remove_liked_book',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ book_title: bookTitle }),
+            success: function(response) {
+                if (response.success) {
+                    bookItem.remove();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: response.message,
+                    });
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'An error occurred while removing the book.',
+                });
+            }
+        });
     });
 
     function setupBookDetection(books) {

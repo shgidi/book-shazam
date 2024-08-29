@@ -222,6 +222,7 @@ Please identify and return the most likely full title of the book. If you can't 
 @app.route('/rate_book', methods=['POST'])
 @login_required
 def rate_book():
+
     data = request.json
     book_title = data['book_title']
     liked_books = data['liked_books']
